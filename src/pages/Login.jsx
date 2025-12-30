@@ -30,7 +30,7 @@ export default function Login() {
       // Assume backend returns: { data: { token, user } }
       const { accessToken, user } = res.data.data;
 
-      if (!token) throw new Error("No token returned");
+      if (!accessToken) throw new Error("No token returned");
 
       // Save token to localStorage
       localStorage.setItem("accessToken", accessToken);

@@ -7,11 +7,17 @@ export default function Dashboard() {
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("userId");
-    navigate("/", { replace: true });
+  const handleLogout = async () => {
+    try {
+      await Axios.post("/users/logout"); // optional backend logout
+    } catch (err) {
+      // ignore error
+    } finally {
+      localStorage.clear(); // clears token + userId safely
+      navigate("/", { replace: true });
+    }
   };
+  
 
   useEffect(() => {
     const fetchDevices = async () => {
