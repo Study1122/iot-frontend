@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Axios from "../api/Axios";
+import DeviceCard from "../components/DeviceCard";
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -51,11 +52,9 @@ export default function Dashboard() {
       {devices.length === 0 ? (
         <p>No device found!</p>
       ) : (
+        //replace
         devices.map((d) => (
-          <div key={d._id} style={{ border: "1px solid #ccc", padding: 10, marginBottom: 10 }}>
-            <h3>{d.deviceName}</h3>
-            <p>ID: {d.deviceId}</p>
-          </div>
+          <DeviceCard key={d._id} device={d} />
         ))
       )}
     </div>

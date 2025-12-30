@@ -3,12 +3,14 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Device from "./pages/Device";
 import ProtectedRoute from "./pages/ProtectedRoute";
+import DeviceDetails from "./pages/DeviceDetails";
 
 export default function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Login />} />
+
         <Route
           path="/dashboard"
           element={
@@ -17,11 +19,23 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* Device list page (optional) */}
         <Route
           path="/device"
           element={
             <ProtectedRoute>
               <Device />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 🔥 THIS WAS MISSING */}
+        <Route
+          path="/device/:deviceId"
+          element={
+            <ProtectedRoute>
+              <DeviceDetails />
             </ProtectedRoute>
           }
         />

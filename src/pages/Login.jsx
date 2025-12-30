@@ -25,7 +25,6 @@ export default function Login() {
       const res = await Axios.post("/users/login", { 
         username, 
         password 
-        
       });
       // Assume backend returns: { data: { token, user } }
       const { accessToken, user } = res.data.data;
