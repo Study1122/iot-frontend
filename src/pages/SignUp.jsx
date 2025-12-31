@@ -2,13 +2,13 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Axios from "../api/Axios"; // assuming this exists
 
-
-export default function Login() {
+export default function Register() {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  
+
   // ✅ redirect if already logged in
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
@@ -22,30 +22,26 @@ export default function Login() {
     setError("");
 
     try {
-      const res = await Axios.post("/users/login", { 
+      const res = await Axios.post("/users/register", { 
         username, 
-        password 
+        password,
+        email
       });
       // Assume backend returns: { data: { token, user } }
-      const { accessToken, user } = res.data.data;
-
-      if (!accessToken) throw new Error("No token returned");
-
-      // Save token to localStorage
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("userId", user._id);
+      
       // Redirect to dashboard
-      navigate("/dashboard");
+      navigate("/login");
       
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || "Login failed");
+      setError(err.response?.data?.message || "Registration failed");
     }
   }
+  
 
   return (
   <div style={{ maxWidth: 400, margin: "50px auto", textAlign: "center" }}>
-      <h1>Login</h1>
+      <h1>Register</h1>
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         <input
           type="text"
@@ -55,16 +51,23 @@ export default function Login() {
           onChange={(e) => setUsername(e.target.value)}
         />
         <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          required
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <input
           type="password"
           placeholder="Password"
           value={password}
           required
           onChange={(e) => setPassword(e.target.value)}
         />
-        <button type="submit">Login</button>
+        <button type="submit">Register</button>
         <button
           type="button"
-          onClick={() => navigate("/signup")}>Sign Up
+          onClick={() => navigate("/login")}>Log In
         </button>
 
       </form>

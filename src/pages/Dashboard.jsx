@@ -15,7 +15,7 @@ export default function Dashboard() {
       // ignore error
     } finally {
       localStorage.clear(); // clears token + userId safely
-      navigate("/", { replace: true });
+      navigate("/login", { replace: true });
     }
   };
   
