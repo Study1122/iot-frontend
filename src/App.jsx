@@ -5,6 +5,7 @@ import Register from "./pages/SignUp";
 import Device from "./pages/Device";
 import ProtectedRoute from "./pages/ProtectedRoute";
 import DeviceDetails from "./pages/DeviceDetails";
+import AddDevice from "./pages/AddDevice";
 
 export default function App() {
   return (
@@ -38,6 +39,15 @@ export default function App() {
           element={
             <ProtectedRoute>
               <DeviceDetails />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/device/addDevice"
+          element={
+            <ProtectedRoute>
+              <AddDevice />
             </ProtectedRoute>
           }
         />

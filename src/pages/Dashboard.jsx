@@ -6,6 +6,7 @@ import DeviceCard from "../components/DeviceCard";
 export default function Dashboard() {
   const navigate = useNavigate();
   const [devices, setDevices] = useState([]);
+  const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(true);
 
   const handleLogout = async () => {
@@ -24,6 +25,8 @@ export default function Dashboard() {
     const fetchDevices = async () => {
       try {
         const userId = localStorage.getItem("userId");
+        const username = localStorage.getItem("username");
+        setUsername(username);
         const res = await Axios.get(`/devices/user/${userId}/devices`);
         setDevices(res.data.data);
       } catch (err) {
@@ -32,21 +35,43 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
-
+    
     fetchDevices();
   }, []);
-
+  
+  
   if (loading) return <h2>Loading...</h2>;
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: 10 ,backgroundColor : "grey"}}>
       {/* HEADER */}
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <div style={{ display: "flex", justifyContent: "space-between"}}>
         <h2>Dashboard</h2>
+        <h3>Welcome: {username}</h3>
+        
         <button onClick={handleLogout}>Logout</button>
       </div>
 
       <hr />
+    {/*add new device*/}
+    <div 
+      style={{
+        border: "1px solid #ccc",
+        padding: 10,
+        marginBottom: 10,
+        borderRadius: 6,
+        cursor: "pointer",
+      }}
+    >
+     <button onClick={()=>navigate(`/device/addDevice`)} style={{
+        border: "1px solid #ccc",
+        padding: 10,
+        marginBottom: 10,
+        borderRadius: 6,
+        cursor: "pointer",
+      }}
+      >Add Device</button> 
+    </div>
 
       {/* DEVICES */}
       {devices.length === 0 ? (

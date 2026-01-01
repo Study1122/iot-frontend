@@ -34,6 +34,7 @@ export default function Login() {
       // Save token to localStorage
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("userId", user._id);
+      localStorage.setItem("username", user.username);
       // Redirect to dashboard
       navigate("/dashboard");
       
