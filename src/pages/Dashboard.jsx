@@ -26,6 +26,7 @@ export default function Dashboard() {
       try {
         const userId = localStorage.getItem("userId");
         const username = localStorage.getItem("username");
+        
         setUsername(username);
         const res = await Axios.get(`/devices/user/${userId}/devices`);
         setDevices(res.data.data);
@@ -43,45 +44,64 @@ export default function Dashboard() {
   if (loading) return <h2>Loading...</h2>;
 
   return (
-    <div style={{ padding: 10 ,backgroundColor : "grey"}}>
+    <div 
+      style={{
+        padding: 10, 
+        borderRadius: 5,
+        backgroundColor : "grey"
+      }}>
+      
       {/* HEADER */}
-      <div style={{ display: "flex", justifyContent: "space-between"}}>
+      <div 
+        style={{ 
+          display: "flex",
+          justifyContent: "space-between"
+        }}>
         <h2>Dashboard</h2>
         <h3>Welcome: {username}</h3>
-        
-        <button onClick={handleLogout}>Logout</button>
+        <button 
+          onClick={handleLogout}
+          >Logout</button>
       </div>
 
       <hr />
-    {/*add new device*/}
-    <div 
-      style={{
-        border: "1px solid #ccc",
-        padding: 10,
-        marginBottom: 10,
-        borderRadius: 6,
-        cursor: "pointer",
-      }}
-    >
-     <button onClick={()=>navigate(`/device/addDevice`)} style={{
-        border: "1px solid #ccc",
-        padding: 10,
-        marginBottom: 10,
-        borderRadius: 6,
-        cursor: "pointer",
-      }}
-      >Add Device</button> 
-    </div>
+      {/*add new device*/}
+      <div 
+        style={{
+          padding: 10,
+          display: "flex",
+          flexDirection:'column',
+          justifyContent: "center",
+          alignItem: "center",
+          borderRadius: 6,
+          cursor: "pointer",
+        }}
+      >
+       <button onClick={()=>navigate(`/device/addDevice`)} style={{
+          border: "1px solid #ccc",
+          padding: 10,
+          borderRadius: 6,
+          cursor: "pointer",
+        }}
+        >Add Device</button> 
+      </div>
 
       {/* DEVICES */}
-      {devices.length === 0 ? (
-        <p>No device found!</p>
-      ) : (
+      {
+        devices.length === 0 ? (
+         <p>No device found!</p>
+        ) : (
         //replace
         devices.map((d) => (
-          <DeviceCard key={d._id} device={d} />
+          <DeviceCard 
+            key={d._id} 
+            device={d}
+            plainSecret={d.plainSecret} // this is plain secret from API
+            deviceSecret={d.deviceSecret} // this is plain secret from API
+          />
         ))
       )}
     </div>
   );
 }
+//plainSecret: "a6f66d5063455703b96585953095ceb6759df878addad889342e4718c9cd35c2"

@@ -6,7 +6,6 @@ export default function AddDevice(){
   const navigate = useNavigate();
   const [deviceId, setDeviceId] = useState("");
   const [deviceName, setDeviceName] = useState("");
-  //const [userId, setUserId] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   
@@ -19,7 +18,6 @@ export default function AddDevice(){
         deviceName, 
         deviceId 
       });
-      
       navigate("/dashboard");
       
     }catch(err){
