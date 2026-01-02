@@ -96,8 +96,9 @@ export default function Dashboard() {
           <DeviceCard 
             key={d._id} 
             device={d}
-            plainSecret={d.plainSecret} // this is plain secret from API
-            deviceSecret={d.deviceSecret} // this is plain secret from API
+            plainSecret={d.plainSecret}content://com.termux.documents/tree/%2Fdata%2Fdata%2Fcom.termux%2Ffiles%2Fhome%2FAcode%2FIOT::/data/data/com.termux/files/home/Acode/IOT/iot-frontend/src/pages/Dashboard.jsx
+            deviceSecret={d.deviceSecret} 
+            onDelete={(id) => setDevices(prev => prev.filter(d => d._id !== id))}
           />
         ))
       )}
