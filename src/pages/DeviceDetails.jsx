@@ -43,12 +43,13 @@ export default function DeviceDetails() {
     fetchDevice();
   }, [deviceId, navigate]);
 
-  /* ================= FETCH TELEMETRY (AUTO REFRESH) ================= */
+  /* === FETCH TELEMETRY (AUTO REFRESH) === */
   useEffect(() => {
     if (!device) return;
 
     const fetchTelemetry = async () => {
       try {
+        //setTelemetryLoading(true);
         const res = await Axios.get(
           `/devices/${device.deviceId}/telemetry?limit=20`
         );
@@ -100,7 +101,7 @@ export default function DeviceDetails() {
   const updateFeatureControl = async (featureId, payload) => {
     try {
       const res = await Axios.patch(
-        `/devices/${device.deviceId}/feature`,
+        `/devices/${device.deviceId}/feature/control`,
         { featureId, ...payload }
       );
 
@@ -160,7 +161,7 @@ export default function DeviceDetails() {
       setActionLoading(true);
   
       const res = await Axios.patch(
-        `/devices/${device.deviceId}/feature`,
+        `/devices/${device.deviceId}/feature/meta`,
         {
           featureId: editingFeature.featureId,
           name: editingFeature.name,
@@ -220,20 +221,6 @@ export default function DeviceDetails() {
       <p><strong>Device ID:</strong> {device.deviceId}</p>
       <p><strong>Status:</strong> {device.status}</p>
       <p><strong>Last Seen:</strong> {device.lastSeen}</p>
-
-      {/* ================= SECRET ================= */}
-      {plainSecret && (
-        <div style={{ marginTop: 20, padding: 15, background: "#333", borderRadius: 6 }}>
-          <h4>New Device Secret</h4>
-          <div style={{ wordBreak: "break-all" }}>{plainSecret}</div>
-          <button onClick={() => navigator.clipboard.writeText(plainSecret)}>
-            Copy Secret
-          </button>
-          <p style={{ color: "orange", fontSize: 12 }}>
-            ⚠ Save this now. You won’t see it again.
-          </p>
-        </div>
-      )}
 
       {/* ================= CONTROLS ================= */}
       <div style={{ marginTop: 30, padding: 15, border: "1px solid #444", borderRadius: 6 }}>
@@ -368,16 +355,30 @@ export default function DeviceDetails() {
         {!telemetryLoading && telemetry.length === 0 && <p>No telemetry data</p>}
 
         {!telemetryLoading &&
-          telemetry.filter(t => t.eventType === "sensor").map((t, i) => (
-            <div key={i}>
-              🌡 {t.data.temperature ?? "--"}°C | 
-              💧 {t.data.humidity ?? "--"}% | 
-              ⚡ {t.data.voltage ?? "--"}V | 
-              🕒{" "}
-              {new Date(t.createdAt).toLocaleString()}
-            </div>
-          ))}
+          telemetry.filter(tele => tele.eventType === "sensor").map((tele, i) => (
+          <div key={i}>
+            🌡 {tele.data.temperature ?? "--"}°C | 
+            💧 {tele.data.humidity ?? "--"}% | 
+            ⚡ {tele.data.voltage ?? "--"}V | 
+            🕒{" "}
+            {new Date(tele.createdAt).toLocaleString()}
+          </div>
+        ))}
       </div>
+      
+      {/* ================= SECRET ================= */}
+      {plainSecret && (
+        <div style={{ marginTop: 20, padding: 15, background: "#333", borderRadius: 6 }}>
+          <h4>New Device Secret</h4>
+          <div style={{ wordBreak: "break-all" }}>{plainSecret}</div>
+          <button onClick={() => navigator.clipboard.writeText(plainSecret)}>
+            Copy Secret
+          </button>
+          <p style={{ color: "orange", fontSize: 12 }}>
+            ⚠ Save this now. You won’t see it again.
+          </p>
+        </div>
+      )}
 
       {/* ================= DANGER ZONE ================= */}
       <div style={{ marginTop: 30, padding: 15, border: "1px solid red", borderRadius: 6 }}>
