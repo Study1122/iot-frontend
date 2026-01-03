@@ -1,135 +1,192 @@
-
-#include <WiFi.h>
-#include <HTTPClient.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
+#include <WiFiClient.h>
 #include <ArduinoJson.h>
 #include <DHT.h>
 
+/* ================== DHT ================== */
 #define DHTPIN 4
 #define DHTTYPE DHT22
-
 DHT dht(DHTPIN, DHTTYPE);
+#define BULB_PIN LED_BUILTIN
+#define FAN_PIN  D6
+#define SWITCH_PIN D7
 
-void sendHeartbeat();
-void sendTelemetry();
-void fetchFeatureControl();
+/* ================== ADC ================== */
+#define VOLTAGE_PIN A0   // ESP8266 has only A0 (0–1V)
 
-//connect to wifi
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
+/* ================== WIFI ================== */
+const char* ssid = "wifi_name";
+const char* password = "password";
 
+/* ================== BACKEND ================== */
+const char* backendURL = "http://hotspotIP:8000/api/v1";
+const char* deviceId = "deviceId";
+const char* deviceSecret = "device secret"; // plain secret
+
+/* ================== TIMERS ================== */
+unsigned long lastHeartbeat = 0;
+unsigned long lastTelemetry = 0;
+
+/* ================== SETUP ================== */
 void setup() {
   Serial.begin(115200);
-  dht.begin();     //✅inisilized dth
-  pinMode(34, INPUT);  //ADC pin analod data for temp
+  dht.begin();
+  // Pins for outputs
+  pinMode(BULB_PIN, OUTPUT);
+  pinMode(FAN_PIN, OUTPUT);
+  pinMode(SWITCH_PIN, OUTPUT);
+
   WiFi.begin(ssid, password);
+  Serial.print("Connecting");
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-  Serial.println("WiFi connected!");
+
+  Serial.println("\n✅ WiFi connected");
+  Serial.println("IP: " + WiFi.localIP().toString());
 }
 
-unsigned long lastHeartbeat = 0;
-unsigned long lastTelemetry = 0;
-
+/* ================== LOOP ================== */
 void loop() {
   unsigned long now = millis();
-  //send telemetry and heartbeat data saperatly
-  if (now - lastHeartbeat > 10000) { // 10 sec heartbeat
+
+  if (now - lastHeartbeat > 10000) {   // every 10 sec
     sendHeartbeat();
     lastHeartbeat = now;
   }
 
-  if (now - lastTelemetry > 5000) { // 5 sec telemetry
+  if (now - lastTelemetry > 5000) {    // every 5 sec
     sendTelemetry();
     fetchFeatureControl();
     lastTelemetry = now;
   }
 }
-//check the heartbeat of device
 
-const char* backendURL = "http://YOUR_SERVER_IP:8000"; // Backend
-const char* deviceId = "YOUR_DEVICE_ID";  //*Esp32-abc-01*
-const char* deviceSecret = "YOUR_DEVICE_SECRET"; //plain secrete 
-
+/* ================== HEARTBEAT ================== */
 void sendHeartbeat() {
-  if (WiFi.status() == WL_CONNECTED) {
-    HTTPClient http;
-    String url = String(backendURL) + "/devices/heartbeat";
-    
-    http.begin(url);
-    http.addHeader("Content-Type", "application/json");
-    http.addHeader("Authorization", String("Bearer ") + deviceSecret);
+  if (WiFi.status() != WL_CONNECTED) return;
 
-    String payload = "{\"deviceId\":\"" + String(deviceId) + "\"}";
-    
-    int httpResponseCode = http.POST(payload);
+  WiFiClient client;
+  HTTPClient http;
 
-    if (httpResponseCode > 0) {
-      String response = http.getString();
-      Serial.println(response);
-    } else {
-      Serial.println("Error on sending heartbeat");
-    }
-    http.end();
+  String url = String(backendURL) + "/devices/heartbeat";
+  http.begin(client, url);
+
+  // ⚠ Send deviceId & deviceSecret in headers
+  http.addHeader("x-device-id", deviceId);
+  http.addHeader("x-device-secret", deviceSecret);
+  http.addHeader("Content-Type", "application/json");
+
+  // heartbeat does not need JSON body
+  int code = http.POST("{}");
+
+  if (code > 0) {
+    Serial.print("Heartbeat: ");
+    Serial.println(code);
+    Serial.println(http.getString());
+  } else {
+    Serial.print("❌ Heartbeat failed, error: ");
+    Serial.println(http.errorToString(code));
   }
+
+  http.end();
 }
 
-//sending Telemetry (Temperature, humidity, voltage)
-
+/* ================== TELEMETRY ================== */
 void sendTelemetry() {
   float temp = dht.readTemperature();
-  float hum = dht.readHumidity();
+  float hum  = dht.readHumidity();
+
   if (isnan(temp) || isnan(hum)) {
-    Serial.println("❌ Failed to read from DHT sensor");
+    Serial.println("❌ DHT read failed");
     return;
   }
-  //Make sure pin 34 is connected to the voltage sensor and 3.3V reference is correct.
-  float voltage = analogRead(34) * 3.3 / 4095;
 
-  if (WiFi.status() == WL_CONNECTED) {
-    HTTPClient http;
-    String url = String(backendURL) + "/telemetry";
-    
-    http.begin(url);
-    http.addHeader("Content-Type", "application/json");
-    http.addHeader("Authorization", String("Bearer ") + deviceSecret);
+  // Convert analog voltage (0–1023) → 0–1V
+  float voltage = analogRead(VOLTAGE_PIN) * (1.0 / 1023.0);
 
-    String payload = "{\"data\": {\"temperature\":" + String(temp) +
-                     ",\"humidity\":" + String(hum) +
-                     ",\"voltage\":" + String(voltage) + "}}";
+  WiFiClient client;
+  HTTPClient http;
 
-    int httpResponseCode = http.POST(payload);
-    if (httpResponseCode > 0) {
-      String response = http.getString();
-      Serial.println(response);
-    } else {
-      Serial.println("Error on sending telemetry");
-    }
-    http.end();
+  String url = String(backendURL) + "/telemetry";
+  http.begin(client, url);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("Authorization", "Bearer " + String(deviceSecret));
+
+  String payload = "{\"data\":{"
+                   "\"temperature\":" + String(temp) +
+                   ",\"humidity\":" + String(hum) +
+                   ",\"voltage\":" + String(voltage) +
+                   "}}";
+
+  int code = http.POST(payload);
+  if (code > 0) {
+    Serial.print("Telemetry: ");
+    Serial.println(code);
+    Serial.println(http.getString());
+  } else {
+    Serial.print("❌ Telemetry failed, error: ");
+    Serial.println(http.errorToString(code));
   }
+
+  http.end();
 }
 
-
-//Fetch Feature Control from backend
-
+/* ================== FEATURE CONTROL ================== */
 void fetchFeatureControl() {
-  if (WiFi.status() == WL_CONNECTED) {
-    HTTPClient http;
-    String url = String(backendURL) + "/devices/" + deviceId + "/features";
-    
-    http.begin(url);
-    http.addHeader("Authorization", String("Bearer ") + deviceSecret);
+  if (WiFi.status() != WL_CONNECTED) return;
 
-    int httpResponseCode = http.GET();
-    if (httpResponseCode > 0) {
-      String response = http.getString();
-      Serial.println(response);
-      // parse JSON and apply control to relays, LEDs, etc.
+  WiFiClient client;
+  HTTPClient http;
+
+  String url = String(backendURL) + "/devices/" + deviceId + "/features";
+  http.begin(client, url);
+
+  // ✅ Send custom headers required by verifyDevice middleware
+  http.addHeader("x-device-id", deviceId);
+  http.addHeader("x-device-secret", deviceSecret);
+
+  int code = http.GET();
+
+  if (code > 0) {
+    Serial.print("Features: ");
+    Serial.println(code);
+    String response = http.getString();
+    Serial.println(response);
+    // Parse JSON
+    DynamicJsonDocument doc(1024);
+    DeserializationError error = deserializeJson(doc, response);
+    if (error) {
+      Serial.println("❌ JSON parse failed");
+      return;
     }
-    http.end();
+
+    JsonArray features = doc["features"];
+
+    for (JsonObject feature : features) {
+      const char* type = feature["type"];
+      bool isOn = feature["isOn"];
+      int level = feature["level"];
+
+      if (strcmp(type, "bulb") == 0) {
+        digitalWrite(BULB_PIN, isOn ? HIGH : LOW);
+      } 
+      else if (strcmp(type, "fan") == 0) {
+        // Map level (1-5) to PWM 0-1023
+        int pwm = map(level, 0, 5, 0, 1023);
+        analogWrite(FAN_PIN, pwm);
+      } 
+      else if (strcmp(type, "switch") == 0) {
+        digitalWrite(SWITCH_PIN, isOn ? HIGH : LOW);
+      }
+    }
+  } else {
+    Serial.print("❌ Features request failed, error: ");
+    Serial.println(http.errorToString(code));
   }
+
+  http.end();
 }
-
-
