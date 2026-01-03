@@ -3,28 +3,27 @@ import { useParams, useNavigate } from "react-router-dom";
 import Axios from "../api/Axios";
 
 export default function DeviceDetails() {
-  const { deviceId } = useParams(); // device.deviceId (string)
-  const navigate = useNavigate();
-
+  
   const [device, setDevice] = useState(null);
   const [features, setFeatures] = useState([]);
   const [telemetry, setTelemetry] = useState([]);
   const [plainSecret, setPlainSecret] = useState(null);
-
   //add update delete devices
   const [showAddForm, setShowAddForm] = useState(false);
   const [newFeature, setNewFeature] = useState({
     featureId: "",
-    name: "",
+    featureDevice: "",
     type: "switch"
   });
-  const [editingFeature, setEditingFeature] = useState(null);
+  const [editingFeature,setEditingFeature]= useState(null);
   
-
   const [telemetryLoading, setTelemetryLoading] = useState(true);
   
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
+  const [actionLoading,setActionLoading]= useState(false);
+  
+  const { deviceId } = useParams(); // device.deviceId (string)
+  const navigate = useNavigate();
 
   /* ================= FETCH DEVICE ================= */
   useEffect(() => {
@@ -82,7 +81,7 @@ export default function DeviceDetails() {
       setActionLoading(false);
     }
   };
-
+  /* ================= DELETE DEVICES ================= */
   const deleteDevice = async () => {
     if (!window.confirm("Delete this device permanently?")) return;
 
@@ -115,7 +114,7 @@ export default function DeviceDetails() {
       alert("Failed to update device feature");
     }
   };
-
+  /* ================= TOGGLE CONTROL ================= */
   const toggleFeature = (feature) => {
     updateFeatureControl(feature.featureId, {
       isOn: !feature.isOn
@@ -128,7 +127,7 @@ export default function DeviceDetails() {
       isOn: level > 0
     });
   };
-  //add feature
+  /* ================= ADD FEATURE ================= */
   const addFeature = async () => {
     if (!newFeature.featureId || !newFeature.type) {
       alert("FeatureId and type are required");
@@ -145,7 +144,7 @@ export default function DeviceDetails() {
   
       setFeatures(prev => [...prev, res.data.data]);
   
-      setNewFeature({ featureId: "", name: "", type: "switch" });
+      setNewFeature({ featureId: "", featureDevice: "", type: "switch" });
       setShowAddForm(false);
     } catch (err) {
       console.error(err);
@@ -155,7 +154,7 @@ export default function DeviceDetails() {
     }
   };
   
-  //update feature
+    /* ============== UPDATE FEATURE ============== */
   const updateFeatureMeta = async () => {
     try {
       setActionLoading(true);
@@ -164,7 +163,8 @@ export default function DeviceDetails() {
         `/devices/${device.deviceId}/feature/meta`,
         {
           featureId: editingFeature.featureId,
-          name: editingFeature.name,
+          featureDevice: editingFeature.featureDevice,
+          featureName: editingFeature.featureName,
           type: editingFeature.type
         }
       );
@@ -185,8 +185,7 @@ export default function DeviceDetails() {
       setActionLoading(false);
     }
   };
-  
-  //delete feature
+  /* ================= DELETE FEATURE ================= */
   const removeFeature = async (featureId) => {
     if (!window.confirm("Remove this feature?")) return;
   
@@ -196,7 +195,6 @@ export default function DeviceDetails() {
       await Axios.delete(
         `/devices/${device.deviceId}/feature/${featureId}`
       );
-  
       setFeatures(prev =>
         prev.filter(f => f.featureId !== featureId)
       );
@@ -218,11 +216,19 @@ export default function DeviceDetails() {
       <button onClick={() => navigate(-1)}>← Back</button>
 
       <h2>{device.deviceName}</h2>
-      <p><strong>Device ID:</strong> {device.deviceId}</p>
-      <p><strong>Status:</strong> {device.status}</p>
-      <p><strong>Last Seen:</strong> {device.lastSeen}</p>
+      <p><strong>Device ID:</strong> {""}
+        <span>{ device.deviceId }</span>
+      </p>
+      <p><strong>Status:</strong> {" "}
+        <b>
+          {device?.status === "offline" ? "🔴 OFFLINE" : "🟢 ONLINE"}
+        </b>
+      </p>
+      <p><strong>Last Seen:</strong> { device.lastSeen ? new Date(device.lastSeen).toLocaleString()
+        : "Never"}
+      </p>
 
-      {/* ================= CONTROLS ================= */}
+      {/* ============= 🎛️CONTROLS🎛️ ============= */}
       <div style={{ marginTop: 30, padding: 15, border: "1px solid #444", borderRadius: 6 }}>
         <h3>🎛 Device Controls</h3>
         <button onClick={() => setShowAddForm(v => !v)}>
@@ -237,12 +243,20 @@ export default function DeviceDetails() {
                 setNewFeature({ ...newFeature, featureId: e.target.value })
               }
             />
+            
+            <input
+              placeholder="Feature Name"
+              value={newFeature.featureName}
+              onChange={e =>
+                setNewFeature({ ...newFeature, featureName: e.target.value })
+              }
+            />
         
             <input
-              placeholder="Display Name"
-              value={newFeature.name}
+              placeholder="Feature Device"
+              value={newFeature.featureDevice}
               onChange={e =>
-                setNewFeature({ ...newFeature, name: e.target.value })
+                setNewFeature({ ...newFeature, featureDevice: e.target.value })
               }
             />
         
@@ -274,7 +288,8 @@ export default function DeviceDetails() {
           >
             <strong>
               {feature.featureId}
-              {feature.name && ` — ${feature.name}`}
+              {feature.featureName  && ` — ${feature.featureName}`}
+              {feature.featureDevice && ` — ${feature.featureDevice}`}
             </strong>
       
             {/* Bulb or generic switch */}
@@ -309,7 +324,20 @@ export default function DeviceDetails() {
                     max="5"
                     value={feature.level}
                     disabled={!feature.isOn}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      // ONLY UI update
+                      setFeatures(prev =>
+                        prev.map(f =>
+                          f.featureId === feature.featureId
+                            ? { ...f, level: Number(e.target.value) }
+                            : f
+                        )
+                      );
+                    }}
+                    onMouseUp={(e) =>
+                      changeFanSpeed(feature, Number(e.target.value))
+                    }
+                    onTouchEnd={(e) =>
                       changeFanSpeed(feature, Number(e.target.value))
                     }
                   />
@@ -325,10 +353,17 @@ export default function DeviceDetails() {
         {editingFeature && (
           <div style={{ marginTop: 15 }}>
             <h4>Edit Feature</h4>
+            
             <input
-              value={editingFeature.name}
+              value={editingFeature.featureName}
               onChange={e =>
-                setEditingFeature({ ...editingFeature, name: e.target.value })
+                setEditingFeature({ ...editingFeature, featureName: e.target.value })
+              }
+            />
+            <input
+              value={editingFeature.featureDevice}
+              onChange={e =>
+                setEditingFeature({ ...editingFeature, featureDevice: e.target.value })
               }
             />
             <select
@@ -383,7 +418,10 @@ export default function DeviceDetails() {
       {/* ================= DANGER ZONE ================= */}
       <div style={{ marginTop: 30, padding: 15, border: "1px solid red", borderRadius: 6 }}>
         <h3 style={{ color: "red" }}>Danger Zone</h3>
-        <button onClick={regenerateSecret} disabled={actionLoading}>
+        <button 
+          onClick={regenerateSecret} 
+          disabled={actionLoading}
+        >
           🔄 Regenerate Secret
         </button>
         <button
