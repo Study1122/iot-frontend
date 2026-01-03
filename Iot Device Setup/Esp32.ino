@@ -53,15 +53,38 @@ void setup() {
 void loop() {
   unsigned long now = millis();
 
-  if (now - lastHeartbeat > 10000) {   // every 10 sec
+  // 1️⃣ Ensure WiFi is connected
+  if (WiFi.status() != WL_CONNECTED) {
+    reconnectWiFi();
+    return;  // skip network calls
+  }
+
+  // 2️⃣ Heartbeat every 10 seconds
+  if (now - lastHeartbeat >= 10000) {
     sendHeartbeat();
     lastHeartbeat = now;
   }
 
-  if (now - lastTelemetry > 5000) {    // every 5 sec
+  // 3️⃣ Telemetry + Feature fetch every 5 seconds
+  if (now - lastTelemetry >= 5000) {
     sendTelemetry();
     fetchFeatureControl();
     lastTelemetry = now;
+  }
+}
+
+
+/* ================== RECONNECT WIFI ================== */
+void reconnectWiFi() {
+  static unsigned long lastAttempt = 0;
+  unsigned long now = millis();
+  Serial.print("WiFi disconnected. Reconnecting");
+  // Try reconnect every 5 seconds
+  if (now - lastAttempt >= 5000) {
+    Serial.print(".");
+    WiFi.disconnect();
+    WiFi.begin(ssid, password);
+    lastAttempt = now;
   }
 }
 
